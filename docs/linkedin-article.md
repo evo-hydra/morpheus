@@ -12,7 +12,7 @@ It was: *"OK, I installed Sentinel. Now what? When do I call it? How does it fit
 
 Fair question. I had built five sensors and handed them to people without an instruction manual. The tools could see — but nobody had told them *when* to look.
 
-So I built that too. And in the process, I discovered something I didn't expect: the orchestration layer that connects these tools works even better when it borrows from two techniques I didn't invent.
+So I built that too. Not a sixth tool — the five MCP servers are the sensors. What I was missing was the playbook that tells Claude when to use each one. And in the process, I discovered something I didn't expect: that playbook works even better when it borrows from two techniques I didn't invent.
 
 ---
 
@@ -24,9 +24,11 @@ Here's what I didn't have: anything that tells the agent to actually use them.
 
 I'd start a coding session, write code, remember to check Sentinel halfway through, forget to run Seraph, commit without saving what I learned. The tools were available. The workflow was still manual.
 
-The tools were eyes. What I needed was a brain — something that orchestrates the entire development cycle: check intelligence before coding, critique the code after writing it, grade it with mutation testing, commit it with knowledge persistence, and loop to the next task.
+The tools were eyes. What I needed was a brain — a protocol that tells Claude when to check intelligence, when to critique its own code, when to run mutation testing, and what to save for next time.
 
-I called it Morpheus. Named after the Matrix character who shows Neo the truth. Because that's what it does — it connects the agent to reality through Sentinel, Niobe, Seraph, and Merovingian in a structured cycle:
+Not another tool. Not another MCP server. Just structured markdown instructions that Claude follows autonomously.
+
+I called it Morpheus. Named after the Matrix character who shows Neo the truth. It's a Claude Code plugin — 5 markdown files, zero code, zero dependencies. It connects the agent to reality through Sentinel, Niobe, Seraph, and Merovingian in a structured cycle:
 
 ```
 BOOTSTRAP → CHECK → CODE → TEST → CRITIQUE → GRADE → COMMIT → ADVANCE
@@ -162,16 +164,22 @@ Stack the layers. Give your AI the whole picture.
 
 ---
 
-*The tools from this article and the original:*
+*The protocol (just markdown — zero dependencies):*
 
-- **Morpheus** (the brain): `git clone https://github.com/evo-hydra/morpheus ~/.claude/plugins/morpheus`
+- **Morpheus**: `git clone https://github.com/evo-hydra/morpheus ~/.claude/plugins/morpheus`
+
+*The MCP servers it orchestrates (optional — install what you need):*
+
 - **Sentinel** (project memory): `pip install git-sentinel`
 - **Seraph** (mutation testing): `pip install seraph-ai`
 - **Niobe** (runtime eyes): `pip install niobe`
 - **Merovingian** (contract maps): `pip install merovingian`
 - **Anno** (clean web content): `npm install -g @evointel/anno`
-- **Ralph Wiggum** (persistence): Official Claude Code plugin
-- **Kiro** (spec-driven planning): [kiro.dev](https://kiro.dev)
+
+*Complementary approaches (different layers, same goal):*
+
+- **Ralph Wiggum** (persistence layer): Official Claude Code plugin
+- **Kiro** (planning layer): [kiro.dev](https://kiro.dev)
 
 *By [Evolving Intelligence AI](https://evolvingintelligence.ai) | [github.com/evo-hydra](https://github.com/evo-hydra)*
 

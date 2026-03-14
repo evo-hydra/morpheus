@@ -1,6 +1,6 @@
 {
   "name": "morpheus",
-  "description": "The autonomous dev loop for Claude Code. Connects AI agents to project intelligence (Sentinel), runtime observation (Niobe), contract verification (Merovingian), and mutation testing (Seraph) in a single FDMC-informed development cycle.",
+  "description": "An autonomous development protocol for Claude Code. Structured markdown instructions that orchestrate MCP intelligence servers (Sentinel, Seraph, Niobe, Merovingian) into a coherent FDMC-informed development cycle. Not a tool — a playbook. Zero code, zero dependencies.",
   "version": "2.0.0",
   "author": {
     "name": "Evolving Intelligence AI",
