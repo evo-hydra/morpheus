@@ -89,7 +89,7 @@ Kiro solves another problem I've felt: the AI builds the wrong thing because it 
 
 Morpheus is the protocol layer. For each task, it tells Claude: check Sentinel for pitfalls and co-changes before coding. Run the FDMC quality critique after coding. Grade with Seraph's mutation testing before committing. Save solutions to Sentinel after committing. Submit feedback to all servers when the plan is done.
 
-**Morpheus provides sequencing and visibility.** But on its own, it caps retry attempts at 3 and doesn't generate specs for complex features.
+**Morpheus provides sequencing and enforcement. The sensors provide visibility.** But on its own, it caps retry attempts at 3 and doesn't generate deep specs for complex features.
 
 ---
 
@@ -123,7 +123,9 @@ This is the operational question people actually asked. Here's a concrete decisi
 **After every plan completes:**
 - Feedback to all MCP servers (closes the learning loop)
 
-That's not "use all tools all the time." It's "use the right layer at the right moment."
+If Seraph fails the mutation gate, Merovingian detects a contract break, or Niobe shows runtime regression beyond threshold, the task does not advance automatically. The human intervenes.
+
+That's not "use all tools all the time." It's "use the right layer at the right moment — and stop when it matters."
 
 ### The Combined Stack in Practice
 
@@ -158,7 +160,7 @@ Knowledge prevents repeat mistakes across sessions.
 | Project history | No | No | Sentinel | Sentinel |
 | Mutation testing | No | No | Seraph | Seraph |
 | Runtime observation | No | No | Niobe | Niobe |
-| Cross-session memory | No | No | solution_save | solution_save |
+| Persistent solution memory | No | No | Yes | Yes |
 
 No single layer fills the whole table. The stack does.
 
@@ -168,7 +170,7 @@ No single layer fills the whole table. The stack does.
 
 This isn't just about my tools. The AI coding landscape is moving toward composition.
 
-**MCP is now an industry standard.** Anthropic donated the Model Context Protocol to the Agentic AI Foundation, a Linux Foundation-directed fund, with Anthropic, OpenAI, and Block among the co-founding contributors. 97M+ monthly SDK downloads. Any tool that exposes intelligence via MCP can plug into any agent.
+**MCP is now an industry standard.** Anthropic donated the Model Context Protocol to the Agentic AI Foundation, a Linux Foundation-directed fund, with Anthropic, OpenAI, and Block among the co-founding contributors. Over 10,000 published MCP servers and growing. Any tool that exposes intelligence via MCP can plug into any agent.
 
 **Verification is the bottleneck.** Qodo's 2025 research: only 3.8% of developers report both low hallucinations AND high confidence shipping AI code. The generation problem is mostly solved. The quality problem is wide open.
 
