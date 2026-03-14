@@ -1,6 +1,6 @@
-# I Gave AI Agents Eyes. Then I Realized They Still Couldn't Think.
+# I Gave AI Agents Eyes. They Still Needed a Brain.
 
-*A follow-up to "AI Coding Agents Are Blind" — what happened after I built the sensors, and why the best AI coding techniques are better combined than competing.*
+*A follow-up to "AI Coding Agents Are Blind" — what happened after I built the sensors, and why the best AI coding techniques don't compete. They stack.*
 
 ---
 
@@ -12,11 +12,11 @@ It was: *"OK, I installed Sentinel. Now what? When do I call it? How does it fit
 
 Fair question. I had built five sensors and handed them to people without an instruction manual. The tools could see — but nobody had told them *when* to look.
 
-So I built that too. Not a sixth tool — the five MCP servers are the sensors. What I was missing was the playbook that tells Claude when to use each one. And in the process, I discovered something I didn't expect: that playbook works even better when it borrows from two techniques I didn't invent.
+That's when I realized: **the era of "pick one tool" is over. The era of stacking layers has started.** And the layer I was missing wasn't another tool. It was the protocol that connects them.
 
 ---
 
-## The Missing Brain
+## Sensors Alone Don't Create Workflow
 
 Here's what I had after the original article: five tools that give AI agents sight. Sentinel sees project history. Niobe sees runtime. Merovingian sees API contracts. Seraph sees test quality. Anno sees clean web content.
 
@@ -24,107 +24,132 @@ Here's what I didn't have: anything that tells the agent to actually use them.
 
 I'd start a coding session, write code, remember to check Sentinel halfway through, forget to run Seraph, commit without saving what I learned. The tools were available. The workflow was still manual.
 
-The tools were eyes. What I needed was a brain — a protocol that tells Claude when to check intelligence, when to critique its own code, when to run mutation testing, and what to save for next time.
+The tools were sensors. What I needed was a protocol — structured instructions that tell Claude when to check intelligence, when to critique its own code, when to run mutation testing, and what to save for next time.
 
-Not another tool. Not another MCP server. Just structured markdown instructions that Claude follows autonomously.
+Not another tool. Not another MCP server. Just markdown that Claude follows autonomously.
 
-I called it Morpheus. Named after the Matrix character who shows Neo the truth. It's a Claude Code plugin — 5 markdown files, zero code, zero dependencies. It connects the agent to reality through Sentinel, Niobe, Seraph, and Merovingian in a structured cycle:
+I called it Morpheus. It's a Claude Code plugin — 5 markdown files, zero code, zero dependencies. It connects the agent to reality through Sentinel, Niobe, Seraph, and Merovingian in a structured cycle:
 
 ```
 BOOTSTRAP → CHECK → CODE → TEST → CRITIQUE → GRADE → COMMIT → ADVANCE
 ```
 
-For each task in a plan, Morpheus runs every phase in order. No human input between tasks. It checks Sentinel for pitfalls before coding. It critiques its own diff for structural violations after coding. It runs mutation testing through Seraph before committing. It saves solutions and pitfalls to Sentinel after committing. When the plan is done, it submits feedback to every MCP server so they get smarter for next time.
-
-The first time I ran Morpheus against a real project — 12 tasks, 11 commits, ~4,800 lines of code — it worked. But it also taught me something humbling.
+The first time I ran it against a real project — 12 tasks, 11 commits, ~4,800 lines of code — it worked. But it also taught me something humbling.
 
 ---
 
-## What Morpheus Got Wrong
+## What Went Wrong on the First Run
 
-I built Morpheus to use my MCP tools. On the first real run, it used 4 out of 32 available tools. Four.
+On that first run, Morpheus used 4 out of 32 available MCP tools. Four.
 
-Sentinel wasn't initialized on that project. Morpheus called it, got an error, and gave up — for all 12 tasks. It never tried again. It never offered to initialize it. It just coded blind for the rest of the session.
+Sentinel wasn't initialized on that project. Morpheus called it, got an error, and gave up — for all 12 tasks. It never tried again. It coded blind for the rest of the session.
 
-Seraph was called once, with the mutation testing disabled (I had set `skip_mutations=true` to save time). The grade came back A — across 3 of 6 dimensions, with nothing actually tested. An empty gold star.
+Seraph was called once with mutation testing disabled. The grade came back A — across 3 of 6 dimensions, with nothing actually tested. An empty gold star.
 
 Niobe and Merovingian were never called at all.
 
-I'd built a brain that had eyes it refused to open.
+I'd built a brain that refused to open its eyes.
 
-So I rewrote the protocol. Morpheus v2 probes all servers once at the start (not per task), caches what's available, and uses everything it can. Seraph runs with mutations enabled by default. Sentinel saves solutions after every bug fix. Feedback goes to all servers at the end of every plan.
+So I rewrote the protocol. Morpheus v2 probes all servers once at startup, caches what's available, and uses everything it can. Seraph runs with mutations enabled by default. Sentinel saves solutions after every bug fix. Feedback goes to all servers at the end.
 
-But the rewrite taught me something bigger: orchestration isn't just about my tools.
-
----
-
-## The Three Layers Nobody's Combining
-
-While I was building the intelligence layer, two other approaches had gotten popular. And instead of competing with them, I realized they solve completely different problems.
-
-### Layer 1: Persistence — Ralph Wiggum
-
-Geoffrey Huntley created the Ralph Wiggum technique, and Anthropic formalized it into an official Claude Code plugin. The concept is deceptively simple: a `while true` loop that feeds the same prompt to Claude over and over. Each time Claude sees its previous work in the files and tries again. A "completion promise" mechanism stops the loop only when the task is genuinely done.
-
-Ralph solves a problem I've felt a hundred times: the AI gives up too early. It writes code, hits an error, and says "I've encountered an issue." Ralph doesn't let it quit. It intercepts the exit and feeds the prompt back in. Claude sees its own failure and iterates.
-
-That persistence is powerful. But Ralph doesn't know anything about your project. Each iteration starts with the same information — the prompt and whatever Claude infers from reading files. There's no Sentinel surfacing pitfalls, no Seraph grading test quality, no knowledge carried between sessions. It's grinding. Effective grinding. But blind grinding.
-
-### Layer 2: Planning — Kiro
-
-Amazon launched Kiro as a spec-driven IDE. You describe what you want in natural language. Kiro generates user stories with acceptance criteria, a technical design, and a task list. Code is written against the spec. Hooks enforce consistency.
-
-Kiro solves another problem I've felt: the AI builds the wrong thing because it misunderstood the requirement. Without a spec, ambiguity compounds. By the time you discover the misinterpretation, the AI has already built three layers on top of it.
-
-That planning is valuable. But Kiro doesn't look backward at your project's history. It doesn't know which files are fragile. It doesn't run mutation testing. The spec is written in a vacuum — informed by the model's general knowledge, not by the six months of git history sitting right there in the repo.
-
-### Layer 3: Intelligence — Morpheus
-
-Morpheus solves what I've felt most viscerally: the AI doesn't know my project. It doesn't know that `bank_connection.py` has been a source of bugs for six months. It doesn't know that files A and B always change together. It doesn't know that the last person who touched this code introduced the exact same bug I'm watching it introduce right now.
-
-That intelligence changes everything. But Morpheus can be too cautious — it has a maximum of 3 retries on test failures before marking a task as failed. And it doesn't generate specs — it works from simpler plan files, which are fine for focused tasks but lack the design depth that complex features need.
+But the rewrite taught me something bigger: my protocol wasn't the only piece of the puzzle.
 
 ---
 
-## What Happens When You Stack All Three
+## Four Layers, Not Four Choices
 
-Here's the thing nobody is talking about: these three approaches fill each other's exact gaps.
+While I was building the orchestration layer, I looked at what other people had built. And instead of seeing competitors, I saw complementary layers solving different problems.
 
-**Ralph + Morpheus intelligence = Persistent, informed iteration.**
+Here's the frame that changed how I think about this:
 
-Instead of Ralph grinding blind through 5 iterations, inject Sentinel intelligence on each loop. Iteration 1: "This file broke 3 times before — here's why." The agent writes informed code. Tests pass. One iteration instead of five. Not because the model is smarter. Because it can see.
+- **Sensors** give the agent visibility.
+- **Protocols** give the agent sequencing.
+- **Persistence loops** give the agent stamina.
+- **Specs** give the agent direction.
 
-**Kiro specs + Morpheus plans = Design-informed task execution.**
+Each of these is a layer. No single layer is sufficient. The best results come from stacking them.
 
-Kiro generates the spec. Morpheus `/plan` breaks the spec into discrete, committable tasks. Each task gets Sentinel intelligence, FDMC critique, and Seraph grading. The spec prevents design misinterpretation. The intelligence prevents implementation mistakes. Neither alone covers both.
+### Persistence: Ralph Wiggum
 
-**All three together:**
+Geoffrey Huntley created the Ralph Wiggum technique, which inspired Claude Code plugin implementations and broader adoption of persistent agent loops. The concept is deceptively simple: a `while true` loop that feeds the same prompt to Claude over and over. Each time Claude sees its previous work in the files and tries again. A "completion promise" mechanism stops the loop only when the task is genuinely done.
+
+Ralph solves a problem I've felt a hundred times: the AI gives up too early. It writes code, hits an error, and says "I've encountered an issue." Ralph doesn't let it quit.
+
+**Ralph provides stamina.** But it doesn't provide visibility. Each iteration has no knowledge of project history, no quality gate, no memory between sessions.
+
+### Specs: Kiro
+
+Amazon launched Kiro as a spec-driven agentic IDE. You describe what you want. Kiro generates user stories with acceptance criteria, a technical design, and a task list. Code is written against the spec. Hooks enforce consistency.
+
+Kiro solves another problem I've felt: the AI builds the wrong thing because it misunderstood the requirement. Without a spec, ambiguity compounds.
+
+**Kiro provides direction.** But it doesn't look backward at your project's history, doesn't know which files are fragile, and doesn't run mutation testing to check whether the tests actually verify anything.
+
+### Orchestration: Morpheus
+
+Morpheus is the protocol layer. For each task, it tells Claude: check Sentinel for pitfalls and co-changes before coding. Run the FDMC quality critique after coding. Grade with Seraph's mutation testing before committing. Save solutions to Sentinel after committing. Submit feedback to all servers when the plan is done.
+
+**Morpheus provides sequencing and visibility.** But on its own, it caps retry attempts at 3 and doesn't generate specs for complex features.
+
+---
+
+## What Happens When You Stack All Four
+
+Here's the part that matters: each layer fills the exact gap the others leave open.
+
+### When Should Each Layer Fire?
+
+This is the operational question people actually asked. Here's a concrete decision framework:
+
+**Every task, always:**
+- Sentinel pitfalls + co-changes before coding (30 seconds, prevents repeat mistakes)
+- FDMC self-critique after coding (catches structural violations)
+- Tests after implementation (basic hygiene)
+
+**When tests fail:**
+- Sentinel solution search first ("have we seen this before?")
+- Ralph-style persistence if the fix needs multiple attempts
+
+**When the task touches auth, payments, schemas, or shared API contracts:**
+- Seraph with mutations enabled before commit (a failed mutation gate blocks commit)
+- Merovingian contract check before advancement (a breaking change blocks the task)
+
+**When the task modifies infrastructure, queues, or performance-sensitive code:**
+- Niobe snapshots before and after (compare runtime metrics)
+
+**When the feature is complex enough to design wrong:**
+- Spec first (Kiro-style) before creating the Morpheus plan
+
+**After every plan completes:**
+- Feedback to all MCP servers (closes the learning loop)
+
+That's not "use all tools all the time." It's "use the right layer at the right moment."
+
+### The Combined Stack in Practice
 
 ```
-Kiro       →  Spec (user stories, technical design, acceptance criteria)
-                ↓
-Morpheus   →  Plan (tasks from spec, with target files and test commands)
-                ↓
-             Execute each task:
-               CHECK  → Sentinel: pitfalls, co-changes, conventions
-               CODE   → FDMC pre-flight, then implement
-               TEST   → Run tests (Ralph persistence if failures)
-               GRADE  → Seraph: mutation testing + quality gate
-               COMMIT → Save knowledge for next session
-                ↓
-             Repeat until plan complete
+Spec (Kiro-style)  →  Design: user stories, acceptance criteria, data model
+                        ↓
+Morpheus /plan     →  Tasks: ordered, with target files and test commands
+                        ↓
+For each task:
+  CHECK            →  Sentinel: pitfalls, co-changes, conventions
+  CODE             →  FDMC pre-flight, then implement
+  TEST             →  Run tests (Ralph persistence if failures)
+  CRITIQUE         →  FDMC self-review with red flags
+  GRADE            →  Seraph: mutation testing + quality gate
+  COMMIT           →  Save knowledge for next session
+                        ↓
+CLOSE              →  Feedback to all MCP servers
 ```
 
 Specs catch design mistakes before coding starts.
-Intelligence catches implementation mistakes during coding.
+Sensors catch implementation mistakes during coding.
+Protocols ensure nothing gets skipped.
 Persistence handles the remaining chaos.
 Knowledge prevents repeat mistakes across sessions.
 
-I've been running this combined workflow for the last two weeks. The difference isn't subtle. Tasks that used to take 3-5 iterations complete in 1. Bugs that used to reappear across sessions don't — because Sentinel remembers the fix. Tests that used to pass vacuously get caught by Seraph's mutation testing. API contracts that would have broken silently get flagged by Merovingian before I push.
-
----
-
-## The Comparison
+### The Stacked Comparison
 
 | Capability | Ralph Alone | Kiro Alone | Morpheus Alone | Stacked |
 |-----------|------------|-----------|---------------|---------|
@@ -133,34 +158,27 @@ I've been running this combined workflow for the last two weeks. The difference 
 | Project history | No | No | Sentinel | Sentinel |
 | Mutation testing | No | No | Seraph | Seraph |
 | Runtime observation | No | No | Niobe | Niobe |
-| API contract safety | No | AWS services | Merovingian | Merovingian |
 | Cross-session memory | No | No | solution_save | solution_save |
 
-No single tool fills the whole table. The stack does.
+No single layer fills the whole table. The stack does.
 
 ---
 
-## Persistence Without Sight Is Grinding Blind
+## The Broader Shift
 
-I started this journey running four AI coding platforms in parallel, building 114 modules to make them share one brain, and killing most of it when the models got better.
+This isn't just about my tools. The AI coding landscape is moving toward composition.
 
-The pieces that survived became the Five Blindnesses. The orchestration I was missing became Morpheus. And the humbling realization that I wasn't using my own tools properly became the v2 protocol that actually works.
+**MCP is now an industry standard.** Anthropic donated the Model Context Protocol to the Agentic AI Foundation, a Linux Foundation-directed fund, with Anthropic, OpenAI, and Block among the co-founding contributors. 97M+ monthly SDK downloads. Any tool that exposes intelligence via MCP can plug into any agent.
 
-But the biggest lesson came from looking at what other people built. Ralph Wiggum's persistence. Kiro's spec-driven planning. Neither solves blindness — but I don't solve persistence or specs. And here's the thing: we don't need to.
+**Verification is the bottleneck.** Qodo's 2025 research: only 3.8% of developers report both low hallucinations AND high confidence shipping AI code. The generation problem is mostly solved. The quality problem is wide open.
 
-MCP is now an industry standard — Anthropic donated it to the Linux Foundation, co-governed with OpenAI and Block. Any tool that exposes intelligence via MCP works with any agent. Ralph, Kiro, and Morpheus don't need to know about each other. They just need to work on the same codebase with the same protocol.
+**Multi-layer architectures are emerging.** Writer/Reviewer, Planner/Executor, Sensor/Protocol — the pattern of specialized components collaborating is replacing the monolithic "one approach does everything" model.
 
-The era of "pick one tool" is over. The era of stacking layers has started.
-
-If you read the original article and installed Sentinel, here's your next step: install Morpheus and let it orchestrate what Sentinel sees.
-
-If you're already using Ralph Wiggum, add Sentinel intelligence to each loop iteration.
-
-If you're using Kiro, feed your specs into Morpheus's plan command and let it execute with mutation testing and project memory.
+I built five MCP sensors and a protocol because I got tired of finding bugs that the AI was blind to. Six user-ID bugs in a fintech app where every test passed. Repeated mistakes because the AI couldn't remember what it learned last session. Breaking changes that crossed repository boundaries.
 
 The models are good enough. The infrastructure around them is getting there. And for the first time, the tools are composable enough that you don't have to choose.
 
-Stack the layers. Give your AI the whole picture.
+Stop choosing. Start stacking.
 
 ---
 
@@ -168,19 +186,19 @@ Stack the layers. Give your AI the whole picture.
 
 - **Morpheus**: `git clone https://github.com/evo-hydra/morpheus ~/.claude/plugins/morpheus`
 
-*The MCP servers it orchestrates (optional — install what you need):*
+*The MCP sensors it orchestrates (optional — install what you need):*
 
 - **Sentinel** (project memory): `pip install git-sentinel`
 - **Seraph** (mutation testing): `pip install seraph-ai`
-- **Niobe** (runtime eyes): `pip install niobe`
+- **Niobe** (runtime observation): `pip install niobe`
 - **Merovingian** (contract maps): `pip install merovingian`
 - **Anno** (clean web content): `npm install -g @evointel/anno`
 
-*Complementary approaches (different layers, same goal):*
+*Complementary layers (different problems, same goal):*
 
-- **Ralph Wiggum** (persistence layer): Official Claude Code plugin
-- **Kiro** (planning layer): [kiro.dev](https://kiro.dev)
+- **Ralph Wiggum** (persistence): Claude Code plugin
+- **Kiro** (spec-driven planning): [kiro.dev](https://kiro.dev)
 
 *By [Evolving Intelligence AI](https://evolvingintelligence.ai) | [github.com/evo-hydra](https://github.com/evo-hydra)*
 
-*#AIEngineering #MCP #DevTools #OpenSource #ClaudeCode #Morpheus #AgenticEngineering #TheFiveBlinnesses*
+*#AIEngineering #MCP #DevTools #OpenSource #ClaudeCode #Morpheus #AgenticEngineering*
