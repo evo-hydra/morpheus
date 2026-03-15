@@ -1,7 +1,7 @@
 ---
 name: Morpheus Dev Loop
 description: "Activates when the user mentions 'morpheus', 'dev loop', 'run the plan', 'execute the plan', 'autonomous development', 'non-stop development', or references a plan file for automated execution. Provides the MCP-informed FDMC development cycle by Evolving Intelligence AI."
-version: 2.2.0
+version: 2.3.0
 ---
 
 # Morpheus Dev Loop
@@ -46,7 +46,7 @@ CLOSE (once)
 1. `sentinel_solution_search("[PITFALL]")` — pitfalls from earlier tasks in THIS session
 2. For each new type/class: `Grep("struct Name|class Name")` — does it already exist?
 
-**If Sentinel available:**
+**If Sentinel available (skip 3-4 if ALL task files are new — Sentinel has no history for new files):**
 3. `sentinel_pitfalls(file_path)` + `sentinel_co_changes(file_path)`
 4. For high-risk tasks: `sentinel_decisions`, `sentinel_query(keywords)`
 
@@ -81,25 +81,25 @@ Then implement. Minimum code to satisfy done-when.
 
 **Fix structural violations before grading.**
 
-**4b. Seraph grade:**
+**4b. Seraph grade (skip if plan has `grade: false`):**
 - **Stage changes first** (`git add`) — Seraph diffs against working tree; unstaged = empty diff = vacuous grade
 - `seraph_assess` with `ref_before=<previous commit>`
 - Do NOT skip mutations unless confirmed incompatible on first task
 - A/B: proceed. C: fix and retry. D/F: fix or fail task.
+- **Record** `seraph_id` in the plan file's task section for Phase 7 feedback.
 
 ### COMMIT AND REMEMBER WHAT WE LEARNED
 A commit saves code. This phase saves *knowledge*.
 
-After every task, ask three questions:
-- **"What broke?"** → `sentinel_solution_save` with error + fix
-- **"What surprised me?"** → `sentinel_solution_save` with `[PITFALL]` prefix
-  Save pitfalls DURING the plan — this is how later tasks learn from earlier ones.
-- **"What worked?"** → `sentinel_solution_verify` on confirmed solutions
+**Dirty file check:** Before `git add`, run `git diff --stat` on files you're staging. If a file has changes beyond this task, use `git add -p` for partial staging or skip it. Never commit mixed changes.
 
-The three compounding habits:
-1. "Catch me up" at session start
-2. "Check before you start" before coding
-3. "Commit and remember what we learned" after every task
+**Remember gate — MANDATORY before advancing. Complete ONE:**
+1. `sentinel_solution_save` with `[PITFALL]` — pattern, convention, or surprise discovered
+2. `sentinel_solution_save` with error — something broke and you fixed it
+3. `sentinel_solution_verify` — confirmed a solution from Phase 1/3 works
+4. Print: "Remember: nothing surprised me, nothing broke, no solutions to verify."
+
+Option 4 is valid but must be EXPLICIT. Silent advancement is not allowed.
 
 ### ADVANCE: Update Plan + Loop
 - Update plan file status

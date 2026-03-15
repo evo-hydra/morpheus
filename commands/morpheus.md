@@ -9,7 +9,7 @@ You are executing **Morpheus** — the autonomous, MCP-informed dev loop by Evol
 
 Read the plan file at `$ARGUMENTS.plan_file`. If the argument is empty or the file doesn't exist, check for `.plan_file` in the project root, then `plans/*.md`. If no plan is found, tell the user to create one with `/plan`.
 
-Parse the frontmatter (YAML between `---` markers) for `name`, `project`, and `test_command`. Parse each `## N. Title` section for tasks. Each task has:
+Parse the frontmatter (YAML between `---` markers) for `name`, `project`, `test_command`, and optional `grade` (default: `true`). When `grade: false`, skip Phase 4b (Seraph grading) for all tasks in this plan — use this for plans that are pure data, config, scripts, or markdown where mutation testing is not applicable. Parse each `## N. Title` section for tasks. Each task has:
 - `files:` — target files to create/modify
 - `do:` — what to implement
 - `done-when:` — acceptance criteria
@@ -72,6 +72,8 @@ For each pending task, execute these phases IN ORDER.
 2. For each new type/class the task will create: `Grep(pattern="struct TypeName|class TypeName")` — does it already exist? This takes 200ms and prevents the #1 mistake (duplicate types).
 
 **If SENTINEL_AVAILABLE:**
+
+**New-file shortcut:** If ALL files in the task's `files:` list are new (do not exist on disk yet), skip steps 3-4 — Sentinel has no history for files that don't exist. Steps 1-2 still run because they check cross-task knowledge and existing types, not file history.
 
 3. `sentinel_pitfalls(file_path=<primary target file>)` — what went wrong here before?
 4. `sentinel_co_changes(file_path=<primary target file>)` — what else needs to change?
@@ -186,7 +188,7 @@ Examples:
 - `FDMC: Modular — split parsing and validation into separate functions`
 - `FDMC: Consistent — VIOLATION NOTED: created standalone class, should be manager-owned (deferred)`
 
-**4b. Seraph Grade (if SERAPH_AVAILABLE):**
+**4b. Seraph Grade (if SERAPH_AVAILABLE and plan frontmatter `grade` is not `false`):**
 
 **Stage changes before assessing.** Seraph compares `ref_before` to `ref_after` (or working tree). If changes are unstaged, the diff is empty and the grade is vacuous. Run `git add` on modified files first, THEN call assess.
 
@@ -202,15 +204,24 @@ Read the grade:
 - **C**: Review Seraph's feedback. Make targeted fixes. Re-run `seraph_assess`. If still C, proceed with a note.
 - **D or F**: Fix the issues Seraph flagged. Re-grade. If it fails twice, mark task as `failed`.
 
-Note the assessment ID for feedback in Phase 7.
+**Record the assessment ID:** Append `- **seraph_id**: {id}` to the current task's section in the plan file. This creates a durable record that Phase 7 CLOSE can reference for the feedback sweep. Do not rely on memory — write it to the plan file.
 
-**If SERAPH_AVAILABLE = false:** Skip this phase and proceed.
+**If SERAPH_AVAILABLE = false or plan has `grade: false`:** Skip this section and proceed.
 
 ### Phase 5: COMMIT AND REMEMBER WHAT WE LEARNED
 
 A commit saves code. This phase saves *knowledge*. Without the "remember" part, the fix exists in git history but the reasoning — why it broke, what the gotcha was, what to watch for — is lost. Future tasks and future sessions will have the code but not the understanding.
 
 **The commit:**
+
+**0. Dirty file check (BEFORE staging):**
+Run `git diff --stat` on the files you intend to stage. If ANY file shows changes beyond what you wrote in this task (changes from prior sessions, other tasks, or external edits), do NOT stage the entire file. Instead:
+- **(a)** Skip that file — only commit files you fully own in this task
+- **(b)** Use `git add -p <file>` to stage only your hunks
+- **(c)** Stash unrelated changes first with `git stash push -m "pre-task" -- <file>`
+
+NEVER blindly `git add` a file that contains mixed changes. This creates mega-commits that are impossible to revert cleanly. If in doubt, run `git diff <file> | head -40` and verify every change is yours.
+
 1. Stage changed files with `git add` (specific files, not `-A`)
 2. Commit with a clear message describing what was done and why. Include FDMC note:
    ```
@@ -218,28 +229,16 @@ A commit saves code. This phase saves *knowledge*. Without the "remember" part, 
    ```
 3. Note the commit SHA (needed for Phase 4 `ref_before` on next task)
 
-**The remember (if SENTINEL_AVAILABLE) — THIS IS NOT OPTIONAL:**
+**The remember gate (if SENTINEL_AVAILABLE) — MANDATORY before advancing:**
 
-Ask yourself three questions after every task:
+Before proceeding to Phase 6, you MUST complete ONE of these actions:
 
-**"What broke?"** → `sentinel_solution_save` with the exact error text and what fixed it.
-   - Compile errors, test failures, runtime bugs — all of them
-   - Include `error_message`, `solution_text`, `file_paths`, `commit_ref`
-   - Next time this error appears, `sentinel_solution_search` finds it in 200ms instead of debugging from scratch
+1. **`sentinel_solution_save`** with a `[PITFALL]` prefix — if you discovered a pattern, convention, ownership model, naming rule, or anything surprising. This is how later tasks learn from earlier ones.
+2. **`sentinel_solution_save`** with an error message — if something broke and you fixed it. Include the exact error text so future searches find it instantly.
+3. **`sentinel_solution_verify`** — on a solution from Phase 1/3 that you confirmed works. Verified solutions rank higher in future searches.
+4. **Print: "Remember: nothing surprised me, nothing broke, no solutions to verify."** — This is a valid fast-pass, but you must EXPLICITLY state it. Silent advancement is not allowed.
 
-**"What surprised me?"** → `sentinel_solution_save` with `[PITFALL]` prefix.
-   - "All subsystems are owned by GameManager" — save it so the next task that creates a subsystem finds it
-   - "ArtifactData already exists in progression.h" — save it so the next task greps first
-   - "These files always change together" — save it even if co_changes didn't catch it
-   - Any structural pattern, ownership model, naming convention, or non-obvious dependency
-   - **Save pitfalls DURING the plan, not at the end.** This is how Task 7 learns from Task 1.
-
-**"What worked?"** → `sentinel_solution_verify` on any solution from Phase 1/3 that you confirmed works. Verified solutions rank higher in future searches.
-
-The three habits that make every session smarter than the last:
-1. "Catch me up" at session start (sentinel_project_context)
-2. "Check before you start" before coding (pitfalls + co_changes + grep)
-3. "Commit and remember what we learned" after every task (this phase)
+**Why this matters:** A commit saves code. This gate saves *knowledge*. Without it, the fix exists in git history but the reasoning — why it broke, what the gotcha was, what to watch for — is lost. Pitfalls saved during the plan are how Task 7 learns from Task 1.
 
 ### Phase 6: ADVANCE (Update Plan + Continue)
 
@@ -268,7 +267,7 @@ Submit feedback to all servers used during the session:
 - `sentinel_feedback` on any knowledge entries that influenced your decisions (with outcome: accepted/rejected/modified and context explaining why)
 
 **If SERAPH_AVAILABLE:**
-- `seraph_feedback` on each assessment ID collected during GRADE phases (outcome: accepted if grade matched code quality, rejected if grade was misleading)
+- Read the `seraph_id` field from each task in the plan file. For each ID found, call `seraph_feedback` with outcome (accepted if grade matched code quality, rejected if grade was misleading).
 
 **If Niobe was used:**
 - `niobe_feedback` on snapshots/comparisons that surfaced useful or misleading data
