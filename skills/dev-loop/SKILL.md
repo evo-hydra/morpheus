@@ -84,12 +84,19 @@ Then implement. Minimum code to satisfy done-when.
 - Do NOT skip mutations unless confirmed incompatible on first task
 - A/B: proceed. C: fix and retry. D/F: fix or fail task.
 
-### COMMIT: Persist Code + Knowledge — DO NOT SKIP
-- `git add` specific files + commit with FDMC note
-- `sentinel_solution_save` for errors fixed (with error_message + solution_text)
-- `sentinel_solution_save` with `[PITFALL]` prefix for structural patterns discovered
-  **Save pitfalls DURING the plan, not just at the end. This is how later tasks learn from earlier ones.**
-- `sentinel_solution_verify` on solutions that worked
+### COMMIT AND REMEMBER WHAT WE LEARNED
+A commit saves code. This phase saves *knowledge*.
+
+After every task, ask three questions:
+- **"What broke?"** → `sentinel_solution_save` with error + fix
+- **"What surprised me?"** → `sentinel_solution_save` with `[PITFALL]` prefix
+  Save pitfalls DURING the plan — this is how later tasks learn from earlier ones.
+- **"What worked?"** → `sentinel_solution_verify` on confirmed solutions
+
+The three compounding habits:
+1. "Catch me up" at session start
+2. "Check before you start" before coding
+3. "Commit and remember what we learned" after every task
 
 ### ADVANCE: Update Plan + Loop
 - Update plan file status

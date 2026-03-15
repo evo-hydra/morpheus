@@ -185,8 +185,11 @@ Note the assessment ID for feedback in Phase 7.
 
 **If SERAPH_AVAILABLE = false:** Skip this phase and proceed.
 
-### Phase 5: COMMIT (Persist Code + Knowledge)
+### Phase 5: COMMIT AND REMEMBER WHAT WE LEARNED
 
+A commit saves code. This phase saves *knowledge*. Without the "remember" part, the fix exists in git history but the reasoning — why it broke, what the gotcha was, what to watch for — is lost. Future tasks and future sessions will have the code but not the understanding.
+
+**The commit:**
 1. Stage changed files with `git add` (specific files, not `-A`)
 2. Commit with a clear message describing what was done and why. Include FDMC note:
    ```
@@ -194,21 +197,28 @@ Note the assessment ID for feedback in Phase 7.
    ```
 3. Note the commit SHA (needed for Phase 4 `ref_before` on next task)
 
-**Knowledge persistence (if SENTINEL_AVAILABLE) — DO NOT SKIP THIS:**
+**The remember (if SENTINEL_AVAILABLE) — THIS IS NOT OPTIONAL:**
 
-This is how you learn across tasks. If you skip this, every future task starts blind to what you just learned.
+Ask yourself three questions after every task:
 
-4. `sentinel_solution_save` for ANY errors encountered and fixed during this task (compile errors, test failures, runtime bugs). Capture:
-   - `error_message`: the exact error text
-   - `solution_text`: what fixed it
-   - `file_paths`: files involved
-   - `commit_ref`: this commit's SHA
-5. `sentinel_solution_save` with `[PITFALL]` prefix for ANY structural pattern you discovered:
-   - "All subsystems are owned by X" — save it so the next task that creates a subsystem finds it
-   - "TypeName already exists in namespace Y" — save it so the next task greps first
+**"What broke?"** → `sentinel_solution_save` with the exact error text and what fixed it.
+   - Compile errors, test failures, runtime bugs — all of them
+   - Include `error_message`, `solution_text`, `file_paths`, `commit_ref`
+   - Next time this error appears, `sentinel_solution_search` finds it in 200ms instead of debugging from scratch
+
+**"What surprised me?"** → `sentinel_solution_save` with `[PITFALL]` prefix.
+   - "All subsystems are owned by GameManager" — save it so the next task that creates a subsystem finds it
+   - "ArtifactData already exists in progression.h" — save it so the next task greps first
    - "These files always change together" — save it even if co_changes didn't catch it
-   This is the cross-task learning mechanism. **Save pitfalls DURING the plan, not just at the end.**
-6. `sentinel_solution_verify` on any solution from Phase 1/3 that you confirmed works
+   - Any structural pattern, ownership model, naming convention, or non-obvious dependency
+   - **Save pitfalls DURING the plan, not at the end.** This is how Task 7 learns from Task 1.
+
+**"What worked?"** → `sentinel_solution_verify` on any solution from Phase 1/3 that you confirmed works. Verified solutions rank higher in future searches.
+
+The three habits that make every session smarter than the last:
+1. "Catch me up" at session start (sentinel_project_context)
+2. "Check before you start" before coding (pitfalls + co_changes + grep)
+3. "Commit and remember what we learned" after every task (this phase)
 
 ### Phase 6: ADVANCE (Update Plan + Continue)
 
