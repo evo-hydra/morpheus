@@ -1,7 +1,7 @@
 ---
 name: Morpheus Dev Loop
 description: "Activates when the user mentions 'morpheus', 'dev loop', 'run the plan', 'execute the plan', 'autonomous development', 'non-stop development', or references a plan file for automated execution. Provides the MCP-informed FDMC development cycle by Evolving Intelligence AI."
-version: 2.1.0
+version: 2.2.0
 ---
 
 # Morpheus Dev Loop
@@ -60,11 +60,13 @@ CLOSE (once)
 2. Read one sibling (existing similar subsystem) — where does it live, who owns it, how is it wired in?
 3. Check Sentinel for [PITFALL] entries about patterns in this codebase
 4. If you discover a pattern, **save it immediately** with sentinel_solution_save
+5. **Before referencing any symbol from another module** (enum value, method, type): READ the definition. Verify the name exists, the signature matches, and the visibility allows your usage. Do not assume.
 
 Then answer Future-Proof, Dynamic, Modular questions.
 Then implement. Minimum code to satisfy done-when.
 
-### TEST: Run + Self-Heal
+### TEST: Build + Run + Self-Heal
+- **Build coverage:** Verify the test command compiles ALL files this task modified. If not (e.g., test target doesn't include client code), build those targets explicitly first. A task is not verified if its code was never compiled.
 - If Niobe registered: snapshot before/after, compare for regressions
 - Run project test command
 - On failure: `sentinel_solution_search(error)` BEFORE debugging from scratch
@@ -80,6 +82,7 @@ Then implement. Minimum code to satisfy done-when.
 **Fix structural violations before grading.**
 
 **4b. Seraph grade:**
+- **Stage changes first** (`git add`) — Seraph diffs against working tree; unstaged = empty diff = vacuous grade
 - `seraph_assess` with `ref_before=<previous commit>`
 - Do NOT skip mutations unless confirmed incompatible on first task
 - A/B: proceed. C: fix and retry. D/F: fix or fail task.

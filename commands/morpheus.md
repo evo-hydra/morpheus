@@ -109,6 +109,10 @@ Before creating any new struct, class, or module:
 3. **Check Sentinel.** `sentinel_solution_search("[PITFALL]")` — have previous tasks in this session or previous sessions flagged patterns you should follow?
 4. If you discover a pattern (e.g., "all subsystems are owned by GameManager"), **save it immediately**: `sentinel_solution_save` with `[PITFALL]` prefix so later tasks in this plan can find it.
 
+Before REFERENCING any existing symbol (enum value, method, type) from another module:
+5. **Read the definition.** Do not assume an enum value, method, or type exists — read the header/source where it's defined. Verify: the name exists, the signature matches, and the visibility (public/private/protected) allows your usage. This takes 5 seconds and prevents the most common compile error: using a symbol that doesn't exist or isn't accessible.
+6. **Cross-module access.** If calling a method on another class from a different class, verify the method is public. If it's private, either make it public (if appropriate) or find the intended access pattern.
+
 **Future-Proof**: What assumptions am I baking in? Will this break if the task's scope expands later? Am I coupling to a specific caller, data shape, or execution order?
 
 **Dynamic**: Am I hardcoding values that could reasonably vary? Magic numbers, paths, thresholds, limits — should any of these be parameters or config?
@@ -122,6 +126,21 @@ Write the minimum code needed to satisfy `done-when:`. Do not over-engineer. Do 
 Update the plan file: change the task's `status:` from `pending` to `in_progress`.
 
 ### Phase 3: TEST (Verification)
+
+**3a. Build coverage check:**
+
+Before running tests, verify that the `test_command` actually compiles the files this task modified. Compare the task's `files:` list against what the test target builds. Common gaps:
+- Test commands that only build a test binary (e.g., `--target tests`) won't compile client/UI code
+- Shared libraries may not include all source directories
+
+**If any modified files are NOT covered by the test command**, build them explicitly first:
+- For CMake: `cmake --build . --target <target_that_includes_file>`
+- For other build systems: identify and build the relevant target
+- If unsure which target includes a file, build ALL targets: `cmake --build .` or equivalent
+
+**This is non-negotiable.** A task is not verified if its code was never compiled. Tests passing on unrelated code is meaningless.
+
+**3b. Run tests:**
 
 Run the project's test command (from plan frontmatter `test_command`, or check CLAUDE.md / package.json / CMakeLists.txt).
 
@@ -169,9 +188,11 @@ Examples:
 
 **4b. Seraph Grade (if SERAPH_AVAILABLE):**
 
+**Stage changes before assessing.** Seraph compares `ref_before` to `ref_after` (or working tree). If changes are unstaged, the diff is empty and the grade is vacuous. Run `git add` on modified files first, THEN call assess.
+
 Call `seraph_assess` with targeted refs to grade ONLY this task's changes:
 - `ref_before`: the commit SHA before this task (HEAD~1 after prior task's commit, or the SHA noted at plan start)
-- `ref_after`: empty (working tree)
+- `ref_after`: empty (working tree — which now includes staged changes)
 - Do NOT pass `skip_mutations=true` unless the project has no test framework or mutations consistently return N/A
 
 **First task only:** If assess returns < 3/6 dimensions evaluated (e.g., mutation testing not compatible), note the degradation and switch to `seraph_mutate` for remaining tasks as a lighter alternative.
