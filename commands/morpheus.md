@@ -51,6 +51,11 @@ SERAPH_AVAILABLE = true/false (based on whether history returned data or assess 
 **Merovingian**: Only relevant if the project exposes APIs consumed by other repos, or if tasks modify serialized types/public interfaces. For single-repo projects with no external consumers, skip Merovingian. If relevant:
 - `merovingian_register` + `merovingian_scan` the repo
 
+**Context management:**
+- Use `Agent(subagent_type="Explore")` for initial codebase exploration if the project is unfamiliar. The subagent reads files in its own context window and returns a summary — this saves the main context for actual coding.
+- If an LSP server is available for the project's language, prefer `LSP(operation="workspaceSymbol")` and `LSP(operation="documentSymbol")` over reading entire files to find type definitions.
+- Note the key architectural patterns from bootstrap (ownership model, naming conventions, directory structure) — you'll reference these in every task's FDMC Consistent check.
+
 Log the bootstrap results as a brief summary before starting the first task.
 
 ---
@@ -61,24 +66,29 @@ For each pending task, execute these phases IN ORDER.
 
 ### Phase 1: CHECK (Pre-flight Intelligence)
 
+**Always (regardless of MCP availability):**
+
+1. `sentinel_solution_search("[PITFALL]")` — check for pitfalls saved earlier in THIS session. This is the cross-task learning mechanism. If Task 3 discovered a pattern, Task 7 needs to see it.
+2. For each new type/class the task will create: `Grep(pattern="struct TypeName|class TypeName")` — does it already exist? This takes 200ms and prevents the #1 mistake (duplicate types).
+
 **If SENTINEL_AVAILABLE:**
 
-For EVERY task (fast — 2 parallel calls):
-1. `sentinel_pitfalls(file_path=<primary target file>)` — what went wrong here before?
-2. `sentinel_co_changes(file_path=<primary target file>)` — what else needs to change?
+3. `sentinel_pitfalls(file_path=<primary target file>)` — what went wrong here before?
+4. `sentinel_co_changes(file_path=<primary target file>)` — what else needs to change?
 
 For HIGH-RISK tasks (modifying hot files, shared types, public APIs — check against hot_files from bootstrap):
-3. `sentinel_decisions` — don't contradict architectural decisions
-4. `sentinel_query("<task description keywords>")` — search for relevant project knowledge
+5. `sentinel_decisions` — don't contradict architectural decisions
+6. `sentinel_query("<task description keywords>")` — search for relevant project knowledge
 
 Read the results. Adjust your implementation plan based on:
-- Pitfalls: avoid known mistakes
+- Pitfalls: avoid known mistakes (from both git history AND this session)
 - Co-changes: include partner files in your changes (update the plan's `files:` list if needed)
+- Grep results: don't create things that already exist
 - Decisions: don't contradict past architectural choices
-- Query results: reuse proven patterns
 
 **If SENTINEL_AVAILABLE = false:**
-- Skip Sentinel calls (already logged in bootstrap)
+- Steps 1-2 still run (they use Grep, not Sentinel)
+- Skip Sentinel-specific calls (3-6)
 - Rely on code reading and convention inference from the codebase
 
 **If Merovingian is available AND this task modifies serialized types or API endpoints:**
@@ -89,18 +99,21 @@ Read the results. Adjust your implementation plan based on:
 
 **2a. FDMC Pre-flight (before writing code):**
 
-Answer these four questions about your planned approach. Write the answers in a brief internal note (not in the plan file — just in your reasoning):
+This is the most important phase. Coding before looking is the #1 source of mistakes. Do not skip these checks.
 
-- **Future-Proof**: What assumptions am I baking in? Will this break if the task's scope expands later? Am I coupling to a specific caller, data shape, or execution order?
-- **Dynamic**: Am I hardcoding values that could reasonably vary? Magic numbers, paths, thresholds, limits — should any of these be parameters or config?
-- **Modular**: Can I describe what this code does in one sentence? If I'm touching 5+ files, am I doing too many things? Should this be split?
-- **Consistent**: Do similar systems in this codebase already exist? How are they structured? Am I following the same ownership model, naming, file placement, and integration patterns?
+**Consistent (check FIRST — this is the most violated lens):**
 
-The **Consistent** check is the most commonly violated. Before creating a new class or module, look at how existing ones are structured:
-- Where do they live? (which directory, which namespace)
-- Who owns them? (standalone vs owned by a manager)
-- How are they wired in? (constructor injection, load_data(), event callbacks)
-- Match that pattern. Don't invent a new integration style.
+Before creating any new struct, class, or module:
+1. **Grep for the name.** `Grep(pattern="struct YourTypeName|class YourTypeName")` across the codebase. If it already exists, extend it — don't create a parallel type.
+2. **Read one sibling.** If you're creating a new subsystem/manager/service, find an existing one that does something similar. Read its header file. Note: where does it live? Who owns it? How is it constructed? How is it accessed? Match that pattern exactly.
+3. **Check Sentinel.** `sentinel_solution_search("[PITFALL]")` — have previous tasks in this session or previous sessions flagged patterns you should follow?
+4. If you discover a pattern (e.g., "all subsystems are owned by GameManager"), **save it immediately**: `sentinel_solution_save` with `[PITFALL]` prefix so later tasks in this plan can find it.
+
+**Future-Proof**: What assumptions am I baking in? Will this break if the task's scope expands later? Am I coupling to a specific caller, data shape, or execution order?
+
+**Dynamic**: Am I hardcoding values that could reasonably vary? Magic numbers, paths, thresholds, limits — should any of these be parameters or config?
+
+**Modular**: Can I describe what this code does in one sentence? If I'm touching 5+ files, am I doing too many things? Should this be split?
 
 **2b. Implement:**
 
@@ -181,13 +194,20 @@ Note the assessment ID for feedback in Phase 7.
    ```
 3. Note the commit SHA (needed for Phase 4 `ref_before` on next task)
 
-**Knowledge persistence (if SENTINEL_AVAILABLE):**
+**Knowledge persistence (if SENTINEL_AVAILABLE) — DO NOT SKIP THIS:**
+
+This is how you learn across tasks. If you skip this, every future task starts blind to what you just learned.
+
 4. `sentinel_solution_save` for ANY errors encountered and fixed during this task (compile errors, test failures, runtime bugs). Capture:
    - `error_message`: the exact error text
    - `solution_text`: what fixed it
    - `file_paths`: files involved
    - `commit_ref`: this commit's SHA
-5. If you discovered a non-obvious gotcha, call `sentinel_solution_save` with error_message prefixed `[PITFALL]` to flag it for future sessions
+5. `sentinel_solution_save` with `[PITFALL]` prefix for ANY structural pattern you discovered:
+   - "All subsystems are owned by X" — save it so the next task that creates a subsystem finds it
+   - "TypeName already exists in namespace Y" — save it so the next task greps first
+   - "These files always change together" — save it even if co_changes didn't catch it
+   This is the cross-task learning mechanism. **Save pitfalls DURING the plan, not just at the end.**
 6. `sentinel_solution_verify` on any solution from Phase 1/3 that you confirmed works
 
 ### Phase 6: ADVANCE (Update Plan + Continue)
